@@ -19,4 +19,5 @@ SP_REDIRECT_URI=http://localhost/callback (this works for everyone)
 DISCORD_TOKEN=<YOUR DISCORD TOKEN>
 USER_ID=<YOUR DISCORD USER ID>
 ```
-6) Run the Python script
+6) Ensure that the discord bot is in a shared server with you, and that direct messages from users in that server are allowd in your Discord profile
+7) Run the Python Script
