@@ -15,7 +15,7 @@ Weezbot is a discord bot that will keep track of your spotify playback, and noti
 ```
 SP_CLIENT_ID=<YOUR SPOTIFY CLIENT ID>
 SP_CLIENT_SECRET=<YOUR SPOTIFY CLIENT SECRET>
-SP_REDIRECT_URI=http://localhost/callback (this works for everyone)
+SP_REDIRECT_URI=http://localhost/callback #(this works for everyone)
 DISCORD_TOKEN=<YOUR DISCORD TOKEN>
 USER_ID=<YOUR DISCORD USER ID>
 ```
