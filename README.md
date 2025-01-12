@@ -21,3 +21,4 @@ USER_ID=<YOUR DISCORD USER ID>
 ```
 6) Ensure that the discord bot is in a shared server with you, and that direct messages from users in that server are allowd in your Discord profile
 7) Run the Python Script
+8) Upon first launch, you will be asked to open a link in your browser. This for Spotify Authentication. Open the link when asked, then copy it and paste it into the terminal of the running python script. The bot should now be functional.
