@@ -20,7 +20,6 @@ SP_REDIRECT_URI = os.getenv('SP_REDIRECT_URI')
 
 # Discord credentials
 DS_TOKEN = os.getenv('DISCORD_TOKEN')
-DS_CHANNEL_ID = os.getenv('CHANNEL_ID')
 DS_USER_ID = os.getenv('USER_ID')
 
 # Setup spotify auth
