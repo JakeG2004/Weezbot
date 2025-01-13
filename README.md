@@ -6,6 +6,9 @@ Weezbot is a discord bot that will keep track of your spotify playback, and noti
 * Spotify is paused
 * Spotify is not playing the desired song
 
+# Which version of Weezbot should I use?
+Use weezbot.py for simplicity. Use Weezbot_StatTracker.py to store informatiion regarding total listening time and total ad time.
+
 # How to use weezbot?
 1) Setup a [Discord Bot](https://discord.com/developers/applications)
 2) Set up a [spotify App](https://developer.spotify.com/dashboard)
