@@ -3,12 +3,12 @@ from dotenv import load_dotenv
 import time
 import asyncio
 
+import json
+
 import discord
 
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
-
-SLEEP_TIME = 60
 
 # Load .env file
 load_dotenv()
@@ -45,14 +45,37 @@ SP_DESIRED_SONG_NAME = "Say It Ain't So"
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents = intents)
-user = None
 
+# GLOBAL VARS
+user = None
+SLEEP_TIME = 15
+STATS_FILE = "listening_stats.json"
+
+# Load stats to modify
+def LoadStats():
+    try:
+        with open(STATS_FILE, "r") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        # Create the file with default values if not found
+        return {"ads_time_seconds": 0, "song_time_seconds": 0}
+
+# Write stats to file
+def SaveStats(stats):
+    with open(STATS_FILE, "w") as file:
+        json.dump(stats, file, indent=4)
+
+# Checks playback status, sends notifications accordingly
 async def CheckPlayback():
     isWeezing = True
     isPaused = True
     isSpotifyOn = True
+    stats = LoadStats()
 
     while True:
+        # Get time
+        start_time = time.time()
+
         # Get Current Playback
         playback = spotify.current_playback()
 
@@ -74,49 +97,43 @@ async def CheckPlayback():
         # Ad is playing
         if playback['item'] is None:
             print("Ad is playing. Cannot retrieve song information.")
+            stats['ads_time_seconds'] += SLEEP_TIME
+            SaveStats(stats)
             await asyncio.sleep(SLEEP_TIME)
             continue
 
         try:
-            # Extract playback details
+            # Get playback info
             curPlayingName = playback['item']['name']
             isPlaying = playback['is_playing']
 
-            # Handle whether or not it is paused
+            # Song is playing, save stats
+            if isPlaying and curPlayingName == SP_DESIRED_SONG_NAME:
+                stats['song_time_seconds'] += SLEEP_TIME
+                SaveStats(stats)
+
+            # Song is paused
             if not isPlaying and not isPaused:
                 await user.send("Spotify is paused!")
                 isPaused = True
-                print("Playback is paused...")
 
             elif isPlaying and isPaused:
                 isPaused = False
-                print("Playback resumed")
 
-            # Handle switch from weezing to not weezing
+            # Desired song is not current song
             if curPlayingName != SP_DESIRED_SONG_NAME and isWeezing:
                 await user.send(f"{SP_DESIRED_SONG_NAME} not playing!")
                 isWeezing = False
-                print("Weezing halted. Notifying...")
 
-            # Continued not weezing
-            elif curPlayingName != SP_DESIRED_SONG_NAME and not isWeezing:
-                print("Weezing halted. Notf already sent...")
-
-            # Switch back to weezing
             elif curPlayingName == SP_DESIRED_SONG_NAME and not isWeezing:
                 isWeezing = True
-                print("Weezing resumed...")
-
-            # Weezing as normal 
-            elif curPlayingName == SP_DESIRED_SONG_NAME:
-                isWeezing = True
-                #print("Weezing...")
 
         except Exception as e:
             print(f"ERROR! {e}")
 
-        # Wait before looping
-        await asyncio.sleep(SLEEP_TIME)
+        # Wait correct amount of time
+        elapsed_time = time.time() - start_time
+        await asyncio.sleep(max(0, SLEEP_TIME - elapsed_time))
 
 
 @client.event
@@ -124,7 +141,29 @@ async def on_ready():
     global user
     print("Discord logged in!")
     user = await client.fetch_user(DS_USER_ID)
-    await user.send("Weezbot online!")
+    await user.send("Weezbot online! Send `!stats` here to check listening stats.")
     await CheckPlayback()
+
+@client.event
+async def on_message(message):
+    # Ignore messages from the bot itself
+    if message.author == client.user:
+        return
+
+    # Check if the message is sent in a DM
+    if isinstance(message.channel, discord.DMChannel):
+        if message.content.lower() == "!stats":
+            stats = LoadStats()
+            ads_time = stats["ads_time_seconds"]
+            song_time = stats["song_time_seconds"]
+            await message.channel.send(
+                f"Ad Listening Time: {ads_time // 60} minutes {ads_time % 60} seconds\n"
+                f"{SP_DESIRED_SONG_NAME} Listening Time: {song_time // 60} minutes {song_time % 60} seconds"
+            )
+        else:
+            await message.channel.send("I don't recognize that command. Try `!stats`.")
+
+    # If the message is not a DM, ignore or handle other cases as needed
+
 
 client.run(DS_TOKEN)
