@@ -2,11 +2,8 @@ import os
 from dotenv import load_dotenv
 import time
 import asyncio
-
 import json
-
 import discord
-
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 
@@ -22,31 +19,31 @@ SP_REDIRECT_URI = os.getenv('SP_REDIRECT_URI')
 DS_TOKEN = os.getenv('DISCORD_TOKEN')
 DS_USER_ID = os.getenv('USER_ID')
 
-# Setup spotify auth
+# Setup Spotify auth
 sp_OAuth = SpotifyOAuth(
-    client_id = SP_CLIENT_ID,
-    client_secret = SP_CLIENT_SECRET,
-    redirect_uri = SP_REDIRECT_URI,
+    client_id=SP_CLIENT_ID,
+    client_secret=SP_CLIENT_SECRET,
+    redirect_uri=SP_REDIRECT_URI,
     scope="user-read-playback-state"
 )
 
 # Create Spotify client
 spotify = Spotify(auth_manager=sp_OAuth)
-if(spotify):
+if spotify:
     print("Spotify logged in!")
 else:
-    print("Failed to log in spotify!")
+    print("Failed to log in to Spotify!")
     quit()
 
-# DESIRED SONG
+# Desired song
 SP_DESIRED_SONG_NAME = "Say It Ain't So"
 
 # Create Discord bot
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents = intents)
+client = discord.Client(intents=intents)
 
-# GLOBAL VARS
+# Global vars
 user = None
 SLEEP_TIME = 15
 STATS_FILE = "listening_stats.json"
@@ -58,7 +55,12 @@ def LoadStats():
             return json.load(file)
     except FileNotFoundError:
         # Create the file with default values if not found
-        return {"ads_time_seconds": 0, "song_time_seconds": 0}
+        return {
+            "ads_time_seconds": 0,
+            "song_time_seconds": 0,
+            "paused_time_seconds": 0,
+            "offline_time_seconds": 0
+        }
 
 # Write stats to file
 def SaveStats(stats):
@@ -76,19 +78,17 @@ async def CheckPlayback():
         # Get time
         start_time = time.time()
 
-        # Get Current Playback
+        # Get current playback
         playback = spotify.current_playback()
 
         # No active playback (e.g., device off or Spotify not playing anything)
-        if playback is None and isSpotifyOn:
-            print("No active playback detected. Spotify device might be off.")
-            await user.send("No spotify playback!")
-            isSpotifyOn = False
-            await asyncio.sleep(SLEEP_TIME)
-            continue
-
-        elif playback is None and not isSpotifyOn:
-            print("No active playback detected. Notification already sent...")
+        if playback is None:
+            if isSpotifyOn:
+                print("No active playback detected. Spotify device might be off.")
+                await user.send("No Spotify playback detected!")
+                isSpotifyOn = False
+            stats['offline_time_seconds'] += SLEEP_TIME
+            SaveStats(stats)
             await asyncio.sleep(SLEEP_TIME)
             continue
 
@@ -108,14 +108,18 @@ async def CheckPlayback():
             isPlaying = playback['is_playing']
 
             # Song is playing, save stats
-            if isPlaying and curPlayingName == SP_DESIRED_SONG_NAME:
-                stats['song_time_seconds'] += SLEEP_TIME
-                SaveStats(stats)
+            if isPlaying:
+                if curPlayingName == SP_DESIRED_SONG_NAME:
+                    stats['song_time_seconds'] += SLEEP_TIME
+                    SaveStats(stats)
 
             # Song is paused
-            if not isPlaying and not isPaused:
-                await user.send("Spotify is paused!")
-                isPaused = True
+            if not isPlaying:
+                stats['paused_time_seconds'] += SLEEP_TIME
+                SaveStats(stats)
+                if not isPaused:
+                    await user.send("Spotify is paused!")
+                    isPaused = True
 
             elif isPlaying and isPaused:
                 isPaused = False
@@ -134,7 +138,6 @@ async def CheckPlayback():
         # Wait correct amount of time
         elapsed_time = time.time() - start_time
         await asyncio.sleep(max(0, SLEEP_TIME - elapsed_time))
-
 
 @client.event
 async def on_ready():
@@ -156,14 +159,16 @@ async def on_message(message):
             stats = LoadStats()
             ads_time = stats["ads_time_seconds"]
             song_time = stats["song_time_seconds"]
+            paused_time = stats["paused_time_seconds"]
+            offline_time = stats["offline_time_seconds"]
             await message.channel.send(
                 f"Ad Listening Time: {ads_time // 60} minutes {ads_time % 60} seconds\n"
-                f"{SP_DESIRED_SONG_NAME} Listening Time: {song_time // 60} minutes {song_time % 60} seconds"
+                f"{SP_DESIRED_SONG_NAME} Listening Time: {song_time // 60} minutes {song_time % 60} seconds\n"
+                f"Paused Time: {paused_time // 60} minutes {paused_time % 60} seconds\n"
+                f"Offline Time: {offline_time // 60} minutes {offline_time % 60} seconds"
             )
         else:
             await message.channel.send("I don't recognize that command. Try `!stats`.")
 
-    # If the message is not a DM, ignore or handle other cases as needed
-
-
+LoadStats()
 client.run(DS_TOKEN)
