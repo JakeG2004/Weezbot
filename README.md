@@ -15,8 +15,10 @@ Weezbot is a discord bot that will keep track of your spotify playback, and noti
 ```
 SP_CLIENT_ID=<YOUR SPOTIFY CLIENT ID>
 SP_CLIENT_SECRET=<YOUR SPOTIFY CLIENT SECRET>
-SP_REDIRECT_URI=http://localhost/callback (this works for everyone)
+SP_REDIRECT_URI=http://localhost/callback #(this works for everyone)
 DISCORD_TOKEN=<YOUR DISCORD TOKEN>
 USER_ID=<YOUR DISCORD USER ID>
 ```
-6) Run the Python script
+6) Ensure that the discord bot is in a shared server with you, and that direct messages from users in that server are allowd in your Discord profile
+7) Run the Python Script
+8) Upon first launch, you will be asked to open a link in your browser. This for Spotify Authentication. Open the link when asked, then copy it and paste it into the terminal of the running python script. The bot should now be functional.
